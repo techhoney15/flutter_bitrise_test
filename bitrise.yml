@@ -1,35 +1,62 @@
-format_version: "11"
+---
+format_version: '23'
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: flutter
+workflows:
+  deploy:
+    description: |
+      Builds and deploys app using Deploy to bitrise.io Step.
+    steps:
+    - git-clone@8: {}
+    - certificate-and-profile-installer@1: {}
+    - flutter-installer@1:
+        inputs:
+        - version: 3.41.3
+    - flutter-analyze@0:
+        inputs:
+        - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
+    - flutter-test@1:
+        inputs:
+        - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
+    - flutter-build@0:
+        inputs:
+        - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
+        - platform: both
+        - ios_output_type: archive
+    - deploy-to-bitrise-io@2: {}
 
+  primary:
+    description: |
+      Builds project, runs tests, and generates APK artifact.
+    steps:
+    - git-clone@8: {}
+    - flutter-installer@1:
+        inputs:
+        - version: 3.41.3
+    - restore-dart-cache@2: {}
+    - flutter-test@1:
+        inputs:
+        - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
+    - flutter-build@0:          # ← ADDED: this was missing!
+        inputs:
+        - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
+        - platform: android     # ← android only, no iOS signing needed
+        - android_output_type: apk
+    - save-dart-cache@1: {}
+    - deploy-to-bitrise-io@2:
+        is_always_run: true     # ← ADDED: always upload even if a step warns
+    triggers:
+      push:
+      - branch: prod_release
+      pull_request:
+      - source_branch: "*"
+
+meta:
+  bitrise.io:
+    stack: osx-xcode-26.2.x-edge
+    machine_type_id: g2.mac.large
 app:
   envs:
-    - PROJECT_LOCATION: "."
-
-workflows:
-  build_only:
-    steps:
-      - activate-ssh-key@4: {}
-
-      - git-clone@8: {}
-
-      - flutter-installer@0:
-          inputs:
-            - version: "latest"
-            - is_update: "false"
-
-      - cache-pull@2: {}
-
-      - flutter-build@0:
-          inputs:
-            - project_location: $PROJECT_LOCATION
-            - platform: android           # android ONLY, simpler
-            - android_output_type: apk
-
-      - cache-push@2:
-          is_always_run: true
-
-      - deploy-to-bitrise-io@2:
-          is_always_run: true             # ← THIS is critical, runs even if prev step fails
-          inputs:
-            - deploy_path: $BITRISE_APK_PATH   # explicit path
-            - notify_user_groups: none
+  - BITRISE_FLUTTER_PROJECT_LOCATION: "."
+    opts:
+      is_expand: false
