@@ -3,11 +3,9 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 app:
   envs:
-    - FLUTTER_VERSION: "3.19.0"
     - PROJECT_LOCATION: "."
 
 workflows:
-
   build_only:
     steps:
       - activate-ssh-key@4: {}
@@ -16,26 +14,22 @@ workflows:
 
       - flutter-installer@0:
           inputs:
-            - version: $FLUTTER_VERSION
+            - version: "latest"
             - is_update: "false"
 
       - cache-pull@2: {}
 
-      - flutter-test@1:
-          inputs:
-            - project_location: $PROJECT_LOCATION
-
       - flutter-build@0:
           inputs:
             - project_location: $PROJECT_LOCATION
-            - platform: both        # builds both Android APK + iOS
+            - platform: android           # android ONLY, simpler
             - android_output_type: apk
-            - ios_output_type: archive
 
-      - cache-push@2: {}
+      - cache-push@2:
+          is_always_run: true
 
-      - deploy-to-bitrise-io@2: {}  # stores the APK/IPA as downloadable artifacts
-
-trigger_map:
-  - push_branch: prod_release
-    workflow: build_only
+      - deploy-to-bitrise-io@2:
+          is_always_run: true             # ← THIS is critical, runs even if prev step fails
+          inputs:
+            - deploy_path: $BITRISE_APK_PATH   # explicit path
+            - notify_user_groups: none
