@@ -37,5 +37,5 @@ workflows:
       - deploy-to-bitrise-io@2: {}  # stores the APK/IPA as downloadable artifacts
 
 trigger_map:
-  - push_branch: main
+  - push_branch: prod_release
     workflow: build_only
