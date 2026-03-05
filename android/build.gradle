@@ -6,48 +6,9 @@ allprojects {
 }
 
 rootProject.buildDir = "../build"
+
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
-}
-subprojects {
-    project.evaluationDependsOn(":app")
-}
-
-subprojects {
-    afterEvaluate { project ->
-        if (project.hasProperty('android')) {
-            project.android {
-                compileOptions {
-                    sourceCompatibility = JavaVersion.VERSION_1_8
-                    targetCompatibility = JavaVersion.VERSION_1_8
-                }
-            }
-        }
-        if (project.plugins.hasPlugin('org.jetbrains.kotlin.android')) {
-            project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-                kotlinOptions {
-                    jvmTarget = "1.8"
-                }
-            }
-        }
-    }
-}
-
-subprojects { sub ->
-    if (sub.name != 'app') {
-        sub.afterEvaluate {
-            if (sub.hasProperty('android') && sub.android.namespace == null) {
-                def manifest = file("${sub.projectDir}/src/main/AndroidManifest.xml")
-                if (manifest.exists()) {
-                    def xml = new XmlSlurper().parse(manifest)
-                    def packageName = xml.@package.toString()
-                    if (packageName) {
-                        sub.android.namespace = packageName
-                    }
-                }
-            }
-        }
-    }
 }
 
 tasks.register("clean", Delete) {
