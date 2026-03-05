@@ -86,7 +86,6 @@ dependencies:
   collection: ^1.16.0
   carousel_slider: ^5.0.0
   group_list_view: ^1.1.1
-  flutter_jailbreak_detection: ^1.10.0
   package_info_plus: ^8.0.1
   network_info_plus: ^6.0.0
   pin_code_fields: ^8.0.1
