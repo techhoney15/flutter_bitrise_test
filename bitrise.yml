@@ -2,62 +2,36 @@
 format_version: '23'
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 project_type: flutter
+meta:
+  bitrise.io:
+    stack: linux-docker-android-22.04
+    machine_type_id: elite
+app:
+  envs:
+  - BITRISE_FLUTTER_PROJECT_LOCATION: "."
+    opts:
+      is_expand: false
+  - FIREBASE_APP_ID: 1:689342923546:android:87b562d000793fcfd662a3
+    opts:
+      is_expand: false
+  - FIREBASE_TESTER_GROUPS: all-testers
+    opts:
+      is_expand: false
+triggers:
+  push:
+  - branch: prod_release
+    workflow: Firebase-deploy
+  pull_request:
+  - source_branch: "*"
+    workflow: primary
 workflows:
-  Firebase-deploy:
-    description: |
-      Builds Flutter APK, deploys to Firebase App Distribution and uploads to Bitrise Artifacts.
-    steps:
-    - git-clone@8: {}
-    - flutter-installer@1:
-        inputs:
-        - version: 3.41.3
-    - flutter-build@0:
-        inputs:
-        - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
-        - platform: android
-        - android_output_type: apk
-    - firebase-app-distribution@0:
-        inputs:
-        - app: "$FIREBASE_APP_ID"
-        - firebase_credential_file: "$FIREBASE_SERVICE_ACCOUNT_JSON"
-        - apk_path: "$BITRISE_APK_PATH"
-        - release_notes: "Branch: $BITRISE_GIT_BRANCH | $GIT_CLONE_COMMIT_MESSAGE_SUBJECT"
-        - groups: "$FIREBASE_TESTER_GROUPS"
-    - deploy-to-bitrise-io@2:
-        is_always_run: true
-    triggers:
-      push:
-      - branch: prod_release
-
-  deploy:
-    description: |
-      Builds and deploys Android app using Deploy to bitrise.io Step.
-    steps:
-    - git-clone@8: {}
-    - flutter-installer@1:
-        inputs:
-        - version: 3.41.3
-    - flutter-analyze@0:
-        inputs:
-        - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
-    - flutter-test@1:
-        inputs:
-        - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
-    - flutter-build@0:
-        inputs:
-        - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
-        - platform: android
-        - android_output_type: apk
-    - deploy-to-bitrise-io@2: {}
-
   primary:
-    description: |
-      Builds project, runs tests, and generates APK artifact.
+    description: Runs tests and builds APK on every pull request.
     steps:
     - git-clone@8: {}
     - flutter-installer@1:
         inputs:
-        - version: 3.41.3
+        - version: 3.24.5
     - restore-dart-cache@2: {}
     - flutter-test@1:
         inputs:
@@ -70,16 +44,44 @@ workflows:
     - save-dart-cache@1: {}
     - deploy-to-bitrise-io@2:
         is_always_run: true
-    triggers:
-      pull_request:
-      - source_branch: "*"
-
-meta:
-  bitrise.io:
-    stack: linux-docker-android-22.04
-    machine_type_id: standard
-app:
-  envs:
-  - BITRISE_FLUTTER_PROJECT_LOCATION: "."
-    opts:
-      is_expand: false
+  deploy:
+    description: Analyzes, tests, builds and deploys Android APK to Bitrise Artifacts.
+    steps:
+    - git-clone@8: {}
+    - flutter-installer@1:
+        inputs:
+        - version: 3.24.5
+    - flutter-analyze@0:
+        inputs:
+        - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
+    - flutter-test@1:
+        inputs:
+        - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
+    - flutter-build@0:
+        inputs:
+        - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
+        - platform: android
+        - android_output_type: apk
+    - deploy-to-bitrise-io@2:
+        is_always_run: true
+  Firebase-deploy:
+    description: Builds APK and distributes to testers via Firebase App Distribution.
+    steps:
+    - git-clone@8: {}
+    - flutter-installer@1:
+        inputs:
+        - version: 3.24.5
+    - flutter-build@0:
+        inputs:
+        - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
+        - platform: android
+        - android_output_type: apk
+    - firebase-app-distribution@0:
+        inputs:
+        - app: "$FIREBASE_APP_ID"
+        - firebase_credential_file: "$FIREBASE_SERVICE_ACCOUNT_JSON"
+        - apk_path: "$BITRISE_APK_PATH"
+        - release_notes: 'Branch: $BITRISE_GIT_BRANCH | $GIT_CLONE_COMMIT_MESSAGE_SUBJECT'
+        - groups: "$FIREBASE_TESTER_GROUPS"
+    - deploy-to-bitrise-io@2:
+        is_always_run: true
