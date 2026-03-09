@@ -76,10 +76,16 @@ workflows:
         - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
         - platform: android
         - android_output_type: apk
+    - script@1:
+        title: Save Firebase Service Account JSON
+        inputs:
+        - content: |
+            #!/bin/bash
+            echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > $BITRISE_SOURCE_DIR/firebase-service-account.json
     - firebase-app-distribution@0:
         inputs:
         - app: "$FIREBASE_APP_ID"
-        - service_credentials_file: "$FIREBASE_SERVICE_ACCOUNT_JSON"
+        - service_credentials_file: "$BITRISE_SOURCE_DIR/firebase-service-account.json"
         - app_path: "$BITRISE_APK_PATH"
         - release_notes: 'Branch: $BITRISE_GIT_BRANCH | $GIT_CLONE_COMMIT_MESSAGE_SUBJECT'
         - groups: "$FIREBASE_TESTER_GROUPS"
