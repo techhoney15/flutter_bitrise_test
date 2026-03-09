@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "689342923546",
+    "project_id": "flutter-bitrise-test-e60f6",
+    "storage_bucket": "flutter-bitrise-test-e60f6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:689342923546:android:87b562d000793fcfd662a3",
+        "android_client_info": {
+          "package_name": "com.example.flutter_bitrise_test"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3JuFO9JhElX9k92BiK5Chv392_rvMOig"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
