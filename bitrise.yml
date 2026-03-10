@@ -2,10 +2,13 @@
 format_version: '23'
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 project_type: flutter
+
 meta:
   bitrise.io:
     stack: linux-docker-android-22.04
     machine_type_id: elite
+
+# Global environment variables used by all workflows
 app:
   envs:
   - BITRISE_FLUTTER_PROJECT_LOCATION: "."
@@ -20,104 +23,188 @@ app:
   - FIREBASE_TESTER_GROUPS: all-testers
     opts:
       is_expand: false
+
+# Workflow triggers
 triggers:
   pull_request:
   - source_branch: "*"
     workflow: primary
+
+# All workflows
 workflows:
+  # ==================== PRIMARY WORKFLOW ====================
+  # Runs on: Every Pull Request
+  # Purpose: Quick validation - tests + Android APK build
+  # Time: ~5-10 minutes
+  # =========================================================
   primary:
     description: Runs tests and builds APK on every pull request.
     steps:
     - git-clone@8: {}
+    
     - flutter-installer@1:
         inputs:
         - version: 3.24.5
+    
     - restore-dart-cache@2: {}
+    
     - flutter-test@1:
         inputs:
         - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
+    
     - flutter-build@0:
         inputs:
         - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
         - platform: android
         - android_output_type: apk
+    
     - save-dart-cache@1: {}
+    
     - deploy-to-bitrise-io@2:
         is_always_run: true
+
+  # ==================== DEPLOY WORKFLOW ====================
+  # Runs on: Manual trigger
+  # Purpose: Full validation - analysis + tests + Android APK
+  # Time: ~8-12 minutes
+  # =========================================================
   deploy:
     description: Analyzes, tests, builds and deploys Android APK to Bitrise Artifacts.
     steps:
     - git-clone@8: {}
+    
     - flutter-installer@1:
         inputs:
         - version: 3.24.5
+    
     - flutter-analyze@0:
         inputs:
         - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
+    
     - flutter-test@1:
         inputs:
         - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
+    
     - flutter-build@0:
         inputs:
         - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
         - platform: android
         - android_output_type: apk
+    
     - deploy-to-bitrise-io@2:
         is_always_run: true
+
+  # ==================== FIREBASE-DEPLOY (ANDROID) ====================
+  # Runs on: Push to prod_release branch
+  # Purpose: Build Android APK + distribute to testers via Firebase
+  # Triggers: Firebase-deploy-ios in parallel
+  # Time: ~10-15 minutes
+  # =====================================================================
   Firebase-deploy:
     description: Builds APK and distributes to testers via Firebase App Distribution.
     steps:
     - git-clone@8: {}
+    
+    # Start iOS build in parallel (Firebase-deploy-ios workflow)
     - build-router-start@0:
         title: Start iOS build in parallel
         inputs:
         - workflows: Firebase-deploy-ios
         - access_token: "$BITRISE_API_ACCESS_TOKEN"
+    
     - flutter-installer@1:
         inputs:
         - version: 3.24.5
+    
+    # Build Android APK for release
     - flutter-build@0:
         inputs:
         - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
         - platform: android
         - android_output_type: apk
+    
+    # Save Firebase service account credentials to file
     - script@1:
         title: Save Firebase Service Account JSON
         inputs:
         - content: |
             #!/bin/bash
+            set -e
+            echo "Saving Firebase service account credentials..."
             echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > $BITRISE_SOURCE_DIR/firebase-service-account.json
+            echo "✅ Firebase credentials saved"
+    
+    # Upload APK to Firebase App Distribution
     - firebase-app-distribution@0:
         inputs:
         - app: "$FIREBASE_APP_ID"
         - service_credentials_file: "$BITRISE_SOURCE_DIR/firebase-service-account.json"
         - app_path: "$BITRISE_APK_PATH"
-        - release_notes: 'Branch: $BITRISE_GIT_BRANCH | $GIT_CLONE_COMMIT_MESSAGE_SUBJECT'
+        - release_notes: 'Branch: $BITRISE_GIT_BRANCH | Commit: $GIT_CLONE_COMMIT_MESSAGE_SUBJECT'
         - groups: "$FIREBASE_TESTER_GROUPS"
+    
     - deploy-to-bitrise-io@2:
         is_always_run: true
+    
     triggers:
       push:
       - branch: prod_release
+
+  # ==================== FIREBASE-DEPLOY-IOS ====================
+  # Runs on: Triggered by Firebase-deploy workflow (parallel)
+  # Purpose: Build iOS IPA + distribute to testers via Firebase
+  # Time: ~15-20 minutes
+  # Machine: macOS with Xcode 16.2
+  # 
+  # IMPORTANT SETUP REQUIREMENTS:
+  # 1. Upload iOS Distribution Certificate to Bitrise Code Signing
+  # 2. Upload Ad Hoc Provisioning Profile to Bitrise Code Signing
+  # 3. Add FIREBASE_SERVICE_ACCOUNT_JSON secret to Bitrise
+  # =============================================================
   Firebase-deploy-ios:
     description: Builds IPA and distributes to testers via Firebase App Distribution.
     meta:
       bitrise.io:
         stack: osx-xcode-16.2.x
         machine_type_id: g2.mac.large
+    
     steps:
+    # Step 1: Clone repository
     - git-clone@8: {}
+    
+    # Step 2: Install Flutter SDK
     - flutter-installer@1:
         inputs:
         - version: 3.24.5
+    
+    # Step 3: Restore cached Dart dependencies (speeds up build)
     - restore-dart-cache@2: {}
+    
+    # Step 4: Install iOS certificates & provisioning profiles
+    # NOTE: These must be uploaded to Bitrise Code Signing tab
+    #       Go to: Bitrise App → Code Signing → iOS
+    #       Upload: Distribution Certificate (.p12)
+    #       Upload: Ad Hoc Provisioning Profile (.mobileprovision)
     - certificate-and-profile-installer@1: {}
+    
+    # Step 5: Build iOS archive
+    # This creates a .xcarchive file without code signing
+    # Xcode will handle code signing in the next step
     - flutter-build@0:
         inputs:
         - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
         - platform: ios
         - ios_output_type: archive
-        - ios_additional_params: "--release --no-codesign"
+        # NOTE: Removed "--release --no-codesign" flags
+        #       These flags conflicted with Xcode archive signing
+        #       Let Xcode handle code signing in xcode-archive step below
+    
+    # Step 6: Export signed IPA from archive
+    # This step:
+    # - Takes the .xcarchive created above
+    # - Code signs it with the installed certificate & profile
+    # - Exports it as a signed .ipa file
+    # - Saves path to $BITRISE_IPA_PATH variable
     - xcode-archive@5:
         inputs:
         - project_path: "$BITRISE_FLUTTER_PROJECT_LOCATION/ios/Runner.xcworkspace"
@@ -125,18 +212,71 @@ workflows:
         - distribution_method: ad-hoc
         - automatic_code_signing: "off"
         - export_development_team: CLX8X3P664
+        - compile_bitcode: true
+        - upload_bitcode: false
+    
+    # Step 7: Save Firebase service account credentials
     - script@1:
         title: Save Firebase Service Account JSON
         inputs:
         - content: |
             #!/bin/bash
+            set -e
+            echo "Saving Firebase service account credentials..."
             echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > $BITRISE_SOURCE_DIR/firebase-service-account.json
+            echo "✅ Firebase credentials saved"
+    
+    # Step 8: Verify IPA file was created successfully
+    # This step catches build errors early before uploading to Firebase
+    - script@1:
+        title: Verify IPA File Exists
+        inputs:
+        - content: |
+            #!/bin/bash
+            set -e
+            echo ""
+            echo "============================================"
+            echo "Verifying IPA file..."
+            echo "============================================"
+            
+            if [ -f "$BITRISE_IPA_PATH" ]; then
+              echo "✅ SUCCESS: IPA file found!"
+              echo "📍 Location: $BITRISE_IPA_PATH"
+              echo ""
+              echo "File details:"
+              ls -lh "$BITRISE_IPA_PATH"
+              echo ""
+              echo "File size: $(du -h "$BITRISE_IPA_PATH" | cut -f1)"
+            else
+              echo "❌ ERROR: IPA file NOT found!"
+              echo "Expected location: $BITRISE_IPA_PATH"
+              echo ""
+              echo "Searching for any .ipa files in the build directory..."
+              if find $BITRISE_SOURCE_DIR -name "*.ipa" -type f 2>/dev/null; then
+                echo "Found .ipa files above"
+              else
+                echo "No .ipa files found"
+              fi
+              echo ""
+              echo "Build likely failed during xcode-archive step."
+              echo "Check previous logs for errors."
+              exit 1
+            fi
+            echo "============================================"
+    
+    # Step 9: Upload IPA to Firebase App Distribution
+    # This distributes the app to testers via Firebase
     - firebase-app-distribution@0:
         inputs:
         - app: "$FIREBASE_IOS_APP_ID"
         - service_credentials_file: "$BITRISE_SOURCE_DIR/firebase-service-account.json"
         - app_path: "$BITRISE_IPA_PATH"
-        - release_notes: 'Branch: $BITRISE_GIT_BRANCH | $GIT_CLONE_COMMIT_MESSAGE_SUBJECT'
+        - release_notes: 'Branch: $BITRISE_GIT_BRANCH | Commit: $GIT_CLONE_COMMIT_MESSAGE_SUBJECT'
         - groups: "$FIREBASE_TESTER_GROUPS"
+    
+    # Step 10: Cache Dart packages for faster builds
     - save-dart-cache@1: {}
-  
+    
+    # Step 11: Upload artifacts to Bitrise for backup/download
+    - deploy-to-bitrise-io@2:
+        is_always_run: true
