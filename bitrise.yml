@@ -6,15 +6,6 @@ meta:
   bitrise.io:
     stack: linux-docker-android-22.04
     machine_type_id: elite
-pipelines:
-  deploy-all:
-    stages:
-    - deploy-stage: {}
-stages:
-  deploy-stage:
-    workflows:
-    - Firebase-deploy: {}
-    - Firebase-deploy-ios: {}
 app:
   envs:
   - BITRISE_FLUTTER_PROJECT_LOCATION: "."
@@ -23,7 +14,7 @@ app:
   - FIREBASE_APP_ID: 1:689342923546:android:87b562d000793fcfd662a3
     opts:
       is_expand: false
-  - FIREBASE_IOS_APP_ID: "<YOUR_FIREBASE_IOS_APP_ID>"
+  - FIREBASE_IOS_APP_ID: 1:689342923546:ios:2b911f54f31a4c93d662a3
     opts:
       is_expand: false
   - FIREBASE_TESTER_GROUPS: all-testers
@@ -32,7 +23,7 @@ app:
 triggers:
   push:
   - branch: prod_release
-    pipeline: deploy-all
+    workflow: Firebase-deploy
   pull_request:
   - source_branch: "*"
     workflow: primary
@@ -80,6 +71,11 @@ workflows:
     description: Builds APK and distributes to testers via Firebase App Distribution.
     steps:
     - git-clone@8: {}
+    - bitrise-start-build@0:
+        title: Start iOS build in parallel
+        inputs:
+        - workflows: Firebase-deploy-ios
+        - access_token: "$BITRISE_API_ACCESS_TOKEN"
     - flutter-installer@1:
         inputs:
         - version: 3.24.5
