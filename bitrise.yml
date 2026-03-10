@@ -21,6 +21,9 @@ app:
     opts:
       is_expand: false
 triggers:
+  push:
+  - branch: prod_release
+    workflow: Firebase-deploy-android
   pull_request:
   - source_branch: "*"
     workflow: primary
@@ -64,7 +67,7 @@ workflows:
         - android_output_type: apk
     - deploy-to-bitrise-io@2:
         is_always_run: true
-  Firebase-deploy:
+  Firebase-deploy-android:
     description: Builds APK and distributes to testers via Firebase App Distribution.
     steps:
     - git-clone@8: {}
