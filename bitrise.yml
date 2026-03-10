@@ -64,7 +64,7 @@ workflows:
         - android_output_type: apk
     - deploy-to-bitrise-io@2:
         is_always_run: true
-  Firebase-deploy:
+  Firebase-deploy-android:
     description: Builds APK and distributes to testers via Firebase App Distribution.
     steps:
     - git-clone@8: {}
@@ -123,7 +123,7 @@ workflows:
         - project_path: "$BITRISE_FLUTTER_PROJECT_LOCATION/ios/Runner.xcworkspace"
         - scheme: Runner
         - distribution_method: ad-hoc
-        - automatic_code_signing: "off"
+        - automatic_code_signing: 'off'
         - export_development_team: CLX8X3P664
     - script@1:
         title: Save Firebase Service Account JSON
@@ -139,4 +139,3 @@ workflows:
         - release_notes: 'Branch: $BITRISE_GIT_BRANCH | $GIT_CLONE_COMMIT_MESSAGE_SUBJECT'
         - groups: "$FIREBASE_TESTER_GROUPS"
     - save-dart-cache@1: {}
-  
