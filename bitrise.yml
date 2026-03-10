@@ -6,6 +6,15 @@ meta:
   bitrise.io:
     stack: linux-docker-android-22.04
     machine_type_id: elite
+pipelines:
+  deploy-all:
+    stages:
+    - deploy-stage: {}
+stages:
+  deploy-stage:
+    workflows:
+    - Firebase-deploy: {}
+    - Firebase-deploy-ios: {}
 app:
   envs:
   - BITRISE_FLUTTER_PROJECT_LOCATION: "."
@@ -14,13 +23,16 @@ app:
   - FIREBASE_APP_ID: 1:689342923546:android:87b562d000793fcfd662a3
     opts:
       is_expand: false
+  - FIREBASE_IOS_APP_ID: "<YOUR_FIREBASE_IOS_APP_ID>"
+    opts:
+      is_expand: false
   - FIREBASE_TESTER_GROUPS: all-testers
     opts:
       is_expand: false
 triggers:
   push:
   - branch: prod_release
-    workflow: Firebase-deploy
+    pipeline: deploy-all
   pull_request:
   - source_branch: "*"
     workflow: primary
@@ -91,6 +103,43 @@ workflows:
         - groups: "$FIREBASE_TESTER_GROUPS"
     - deploy-to-bitrise-io@2:
         is_always_run: true
-    triggers:
-      push:
-      - branch: prod_release
+  Firebase-deploy-ios:
+    description: Builds IPA and distributes to testers via Firebase App Distribution.
+    meta:
+      bitrise.io:
+        stack: osx-xcode-16.2.x
+        machine_type_id: g2-m1.4core
+    steps:
+    - git-clone@8: {}
+    - flutter-installer@1:
+        inputs:
+        - version: 3.24.5
+    - restore-dart-cache@2: {}
+    - certificate-and-profile-installer@1: {}
+    - flutter-build@0:
+        inputs:
+        - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
+        - platform: ios
+        - ios_output_type: archive
+        - ios_additional_params: "--release --no-codesign"
+    - xcode-archive@5:
+        inputs:
+        - project_path: "$BITRISE_FLUTTER_PROJECT_LOCATION/ios/Runner.xcworkspace"
+        - scheme: Runner
+        - distribution_method: ad-hoc
+    - script@1:
+        title: Save Firebase Service Account JSON
+        inputs:
+        - content: |
+            #!/bin/bash
+            echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > $BITRISE_SOURCE_DIR/firebase-service-account.json
+    - firebase-app-distribution@0:
+        inputs:
+        - app: "$FIREBASE_IOS_APP_ID"
+        - service_credentials_file: "$BITRISE_SOURCE_DIR/firebase-service-account.json"
+        - app_path: "$BITRISE_IPA_PATH"
+        - release_notes: 'Branch: $BITRISE_GIT_BRANCH | $GIT_CLONE_COMMIT_MESSAGE_SUBJECT'
+        - groups: "$FIREBASE_TESTER_GROUPS"
+    - save-dart-cache@1: {}
+    - deploy-to-bitrise-io@2:
+        is_always_run: true
