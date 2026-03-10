@@ -47,9 +47,6 @@ workflows:
     - save-dart-cache@1: {}
     - deploy-to-bitrise-io@2:
         is_always_run: true
-    triggers:
-      push:
-      - branch: "*"
   deploy:
     description: Analyzes, tests, builds and deploys Android APK to Bitrise Artifacts.
     steps:
@@ -129,3 +126,6 @@ workflows:
     - save-dart-cache@1: {}
     - deploy-to-bitrise-io@2:
         is_always_run: true
+    triggers:
+      push:
+      - branch: prod_release
