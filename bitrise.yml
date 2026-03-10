@@ -21,9 +21,6 @@ app:
     opts:
       is_expand: false
 triggers:
-  push:
-  - branch: prod_release
-    workflow: Firebase-deploy
   pull_request:
   - source_branch: "*"
     workflow: primary
@@ -99,6 +96,9 @@ workflows:
         - groups: "$FIREBASE_TESTER_GROUPS"
     - deploy-to-bitrise-io@2:
         is_always_run: true
+    triggers:
+      push:
+      - branch: prod_release
   Firebase-deploy-ios:
     description: Builds IPA and distributes to testers via Firebase App Distribution.
     meta:
