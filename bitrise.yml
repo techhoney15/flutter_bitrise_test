@@ -20,6 +20,10 @@ app:
   - FIREBASE_TESTER_GROUPS: all-testers
     opts:
       is_expand: false
+triggers:
+  pull_request:
+  - source_branch: "*"
+    workflow: primary
 workflows:
   primary:
     description: Runs tests and builds APK on every pull request.
