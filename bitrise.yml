@@ -20,22 +20,14 @@ app:
   - FIREBASE_TESTER_GROUPS: all-testers
     opts:
       is_expand: false
-
-# ── SINGLE SOURCE OF TRUTH FOR TRIGGERS ──────────────────────────────────────
-# Only define triggers here — never inside individual workflow blocks.
-# Both workflows fire in parallel on push to prod_release.
 triggers:
   push:
   - branch: prod_release
     workflow: Firebase-deploy
-  - branch: prod_release
-    workflow: Firebase-deploy-ios
   pull_request:
   - source_branch: "*"
     workflow: primary
-
 workflows:
-
   primary:
     description: Runs tests and builds APK on every pull request.
     steps:
@@ -55,7 +47,6 @@ workflows:
     - save-dart-cache@1: {}
     - deploy-to-bitrise-io@2:
         is_always_run: true
-
   deploy:
     description: Analyzes, tests, builds and deploys Android APK to Bitrise Artifacts.
     steps:
@@ -76,14 +67,15 @@ workflows:
         - android_output_type: apk
     - deploy-to-bitrise-io@2:
         is_always_run: true
-
-  # ── Android: Linux machine (fast + cheap) ──────────────────────────────────
   Firebase-deploy:
     description: Builds APK and distributes to testers via Firebase App Distribution.
-    # NO triggers block here — handled globally above
-    # NO bitrise-start-build step — iOS is triggered globally above
     steps:
     - git-clone@8: {}
+    - bitrise-start-build@0:
+        title: Start iOS build in parallel
+        inputs:
+        - workflows: Firebase-deploy-ios
+        - access_token: "$BITRISE_API_ACCESS_TOKEN"
     - flutter-installer@1:
         inputs:
         - version: 3.24.5
@@ -107,11 +99,8 @@ workflows:
         - groups: "$FIREBASE_TESTER_GROUPS"
     - deploy-to-bitrise-io@2:
         is_always_run: true
-
-  # ── iOS: macOS machine (required for Xcode) ────────────────────────────────
   Firebase-deploy-ios:
     description: Builds IPA and distributes to testers via Firebase App Distribution.
-    # NO triggers block here — handled globally above
     meta:
       bitrise.io:
         stack: osx-xcode-16.2.x
