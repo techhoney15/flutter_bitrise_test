@@ -21,9 +21,6 @@ app:
     opts:
       is_expand: false
 triggers:
-  push:
-  - branch: prod_release
-    workflow: Firebase-deploy
   pull_request:
   - source_branch: "*"
     workflow: primary
@@ -67,9 +64,43 @@ workflows:
         - android_output_type: apk
     - deploy-to-bitrise-io@2:
         is_always_run: true
-  Firebase-deploy:
-    description: Builds Android APK and iOS IPA, then distributes both to testers
-      via Firebase App Distribution.
+  Firebase-deploy-android:
+    description: Builds APK and distributes to testers via Firebase App Distribution.
+    steps:
+    - git-clone@8: {}
+    - build-router-start@0:
+        title: Start iOS build in parallel
+        inputs:
+        - workflows: Firebase-deploy-ios
+        - access_token: "$BITRISE_API_ACCESS_TOKEN"
+    - flutter-installer@1:
+        inputs:
+        - version: 3.24.5
+    - flutter-build@0:
+        inputs:
+        - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
+        - platform: android
+        - android_output_type: apk
+    - script@1:
+        title: Save Firebase Service Account JSON
+        inputs:
+        - content: |
+            #!/bin/bash
+            echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > $BITRISE_SOURCE_DIR/firebase-service-account.json
+    - firebase-app-distribution@0:
+        inputs:
+        - app: "$FIREBASE_APP_ID"
+        - service_credentials_file: "$BITRISE_SOURCE_DIR/firebase-service-account.json"
+        - app_path: "$BITRISE_APK_PATH"
+        - release_notes: 'Branch: $BITRISE_GIT_BRANCH | $GIT_CLONE_COMMIT_MESSAGE_SUBJECT'
+        - groups: "$FIREBASE_TESTER_GROUPS"
+    - deploy-to-bitrise-io@2:
+        is_always_run: true
+    triggers:
+      push:
+      - branch: prod_release
+  Firebase-deploy-ios:
+    description: Builds IPA and distributes to testers via Firebase App Distribution.
     meta:
       bitrise.io:
         stack: osx-xcode-16.2.x
@@ -82,27 +113,6 @@ workflows:
     - restore-dart-cache@2: {}
     - certificate-and-profile-installer@1: {}
     - flutter-build@0:
-        title: Build Android APK
-        inputs:
-        - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
-        - platform: android
-        - android_output_type: apk
-    - script@1:
-        title: Save Firebase Service Account JSON
-        inputs:
-        - content: |
-            #!/bin/bash
-            echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > $BITRISE_SOURCE_DIR/firebase-service-account.json
-    - firebase-app-distribution@0:
-        title: Distribute Android APK to Firebase
-        inputs:
-        - app: "$FIREBASE_APP_ID"
-        - service_credentials_file: "$BITRISE_SOURCE_DIR/firebase-service-account.json"
-        - app_path: "$BITRISE_APK_PATH"
-        - release_notes: 'Branch: $BITRISE_GIT_BRANCH | $GIT_CLONE_COMMIT_MESSAGE_SUBJECT'
-        - groups: "$FIREBASE_TESTER_GROUPS"
-    - flutter-build@0:
-        title: Build iOS Archive
         inputs:
         - project_location: "$BITRISE_FLUTTER_PROJECT_LOCATION"
         - platform: ios
@@ -115,8 +125,13 @@ workflows:
         - distribution_method: ad-hoc
         - automatic_code_signing: 'off'
         - export_development_team: CLX8X3P664
+    - script@1:
+        title: Save Firebase Service Account JSON
+        inputs:
+        - content: |
+            #!/bin/bash
+            echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > $BITRISE_SOURCE_DIR/firebase-service-account.json
     - firebase-app-distribution@0:
-        title: Distribute iOS IPA to Firebase
         inputs:
         - app: "$FIREBASE_IOS_APP_ID"
         - service_credentials_file: "$BITRISE_SOURCE_DIR/firebase-service-account.json"
@@ -124,8 +139,3 @@ workflows:
         - release_notes: 'Branch: $BITRISE_GIT_BRANCH | $GIT_CLONE_COMMIT_MESSAGE_SUBJECT'
         - groups: "$FIREBASE_TESTER_GROUPS"
     - save-dart-cache@1: {}
-    - deploy-to-bitrise-io@2:
-        is_always_run: true
-    triggers:
-      push:
-      - branch: prod_release
