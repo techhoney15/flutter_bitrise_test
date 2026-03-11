@@ -21,6 +21,9 @@ app:
     opts:
       is_expand: false
 triggers:
+  push:
+  - branch: prod_release
+    workflow: Firebase-deploy-android
   pull_request:
   - source_branch: "*"
     workflow: primary
