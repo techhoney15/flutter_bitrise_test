@@ -23,8 +23,6 @@ app:
 trigger_map:
 - push_branch: prod_release
   workflow: Firebase-deploy-android
-- pull_request_source_branch: "*"
-  workflow: primary
 workflows:
   primary:
     description: Runs tests and builds APK on every pull request.
