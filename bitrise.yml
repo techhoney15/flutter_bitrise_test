@@ -23,6 +23,9 @@ app:
 workflows:
   primary:
     description: Runs tests and builds APK on every pull request.
+    triggers:
+      pull_request:
+      - target_branch: "*"
     steps:
     - git-clone@8: {}
     - flutter-installer@1:
@@ -62,6 +65,9 @@ workflows:
         is_always_run: true
   Firebase-deploy-android:
     description: Builds APK and distributes to testers via Firebase App Distribution.
+    triggers:
+      push:
+      - branch: prod_release
     steps:
     - git-clone@8: {}
     - build-router-start@0:
