@@ -20,12 +20,14 @@ app:
   - FIREBASE_TESTER_GROUPS: all-testers
     opts:
       is_expand: false
+trigger_map:
+- push_branch: prod_release
+  workflow: Firebase-deploy-android
+- pull_request_source_branch: "*"
+  workflow: primary
 workflows:
   primary:
     description: Runs tests and builds APK on every pull request.
-    triggers:
-      pull_request:
-      - target_branch: "*"
     steps:
     - git-clone@8: {}
     - flutter-installer@1:
@@ -65,16 +67,13 @@ workflows:
         is_always_run: true
   Firebase-deploy-android:
     description: Builds APK and distributes to testers via Firebase App Distribution.
-    triggers:
-      push:
-      - branch: prod_release
     steps:
     - git-clone@8: {}
-    # - build-router-start@0:
-    #     title: Start iOS build in parallel
-    #     inputs:
-    #     - workflows: Firebase-deploy-ios
-    #     - access_token: "$BITRISE_API_ACCESS_TOKEN"
+    - build-router-start@0:
+        title: Start iOS build in parallel
+        inputs:
+        - workflows: Firebase-deploy-ios
+        - access_token: "$BITRISE_API_ACCESS_TOKEN"
     - flutter-installer@1:
         inputs:
         - version: 3.24.5
