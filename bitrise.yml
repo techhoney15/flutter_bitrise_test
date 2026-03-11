@@ -135,3 +135,5 @@ workflows:
         - release_notes: 'Branch: $BITRISE_GIT_BRANCH | $GIT_CLONE_COMMIT_MESSAGE_SUBJECT'
         - groups: "$FIREBASE_TESTER_GROUPS"
     - save-dart-cache@1: {}
+    - deploy-to-bitrise-io@2:
+        is_always_run: true
