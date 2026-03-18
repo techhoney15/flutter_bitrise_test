@@ -2,7 +2,7 @@ name: flutter_bitrise_test
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.0+7
 
 environment:
   sdk: ^3.5.4
@@ -31,92 +31,11 @@ dependencies:
   flutter:
     sdk: flutter
 
-  flutter_local_notifications: ^19.5.0
-  keyboard_actions: ^4.2.0
-  path_provider: ^2.1.4
-  share_plus: ^10.0.2
-  device_info_plus: ^11.2.1
-  # Google Maps
-  google_maps_flutter: ^2.5.3
-  location: ^7.0.0
-  # currency_pickers: ^1.0.6
-  intl: ^0.19.0
-  http: ^1.2.2
-  json_annotation: ^4.0.1
-  rxdart: ^0.27.5
-  rx_bloc: ^5.0.3
-  flutter_rx_bloc: ^6.1.1
-  url_launcher: ^6.1.5
-  latlong2: ^0.9.1
-  easy_rich_text: ^2.1.0
-  # For Biometric
-  # local_auth: ^0.6.2+3
-  # For Clustering
-  google_maps_cluster_manager: 1.0.0
-  # Slidable
-  flutter_slidable: ^3.1.2
-  # for string formatting
-  sprintf: ^7.0.0
-  # For charting
-  fl_chart: ^0.68.0
+  firebase_core: ^3.6.0
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.5
-  # Add the dependency for the Firebase Core Flutter SDK
-  firebase_core: ^3.3.0
-  cached_network_image:
-  flutter_excel:
-  analyzer: ^6.4.1
-  uuid: ^4.4.2
-  crypto: ^3.0.2
-  pointycastle: ^3.9.1
-  connectivity_plus: ^6.0.4
-  provider: ^6.0.3
-  timezone: ^0.10.1
-  encrypt: ^5.0.1
-  flutter_secure_storage: ^9.2.2
-  # Shared Preferences
-  shared_preferences: ^2.0.15
-  firebase_remote_config: ^5.0.4
-  firebase_messaging: ^15.0.4
-  permission_handler: ^11.3.1
-  smooth_page_indicator: ^1.0.0+2
-  launch_review: ^3.0.1
-  flutter_multi_formatter: ^2.13.0
-  collection: ^1.16.0
-  carousel_slider: ^5.0.0
-  group_list_view: ^1.1.1
-  flutter_jailbreak_detection: ^1.10.0
-  package_info_plus: ^8.0.1
-  network_info_plus: ^6.0.0
-  pin_code_fields: ^8.0.1
-  video_player: ^2.2.18
-  flutter_html:
-  flutter_sticky_header: ^0.6.4
-  flutter_staggered_animations: ^1.0.0
-  copy_with_extension_gen: ^5.0.4
-  super_tooltip: ^2.0.8
-  badges: ^3.1.2
-  expandable_page_view: ^1.0.17
-  open_file_plus:
-  webview_flutter: ^4.0.0
-  # device_info_plus: ^10.1.0
-  google_maps_flutter_platform_interface: 2.4.3
-  flutter_svg: ^2.0.10+1
-  app_set_id: ^1.2.1
-  http_parser: ^4.0.2
-  flutter_image_compress: ^2.2.0
-  image: ^4.0.17
-  firebase_crashlytics: ^4.3.7
-  html_unescape: ^2.0.0
-  cunning_document_scanner: ^1.2.3
-  image_picker: ^1.1.2
-  local_auth: ^2.3.0
-
-dependency_overrides:
-  json_serializable: ^6.1.5
-  platform: ^3.1.0
-  file_picker: ^8.3.1
+  cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:
@@ -128,28 +47,16 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^4.0.0
-  build_runner: ^2.2.0
-  json_serializable: ^6.1.5
-  rx_bloc_generator: ^7.2.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
-
-  assets:
-    - assets/bulk_data/data_chunk_1.bin
-    - assets/bulk_data/data_chunk_2.bin
-    - assets/bulk_data/data_chunk_3.bin
-    - assets/bulk_data/data_chunk_4.bin
-    - assets/bulk_data/data_chunk_5.bin
-    - assets/bulk_data/data_chunk_6.bin
 
   # To add assets to your application, add an assets section, like this:
   # assets:
